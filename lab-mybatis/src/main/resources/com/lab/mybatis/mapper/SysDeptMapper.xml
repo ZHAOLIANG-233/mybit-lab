@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+    "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 部门 Mapper：与 EmpMapper 分开，各自演进 -->
+<mapper namespace="com.lab.mybatis.mapper.SysDeptMapper">
+
+    <resultMap id="deptMap" type="SysDept">
+        <id     property="deptId"     column="dept_id"/>
+        <result property="deptCode"   column="dept_code"/>
+        <result property="deptName"   column="dept_name"/>
+        <result property="location"   column="location"/>
+        <result property="manager"    column="manager"/>
+        <result property="budget"     column="budget"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="deptColumns">
+        dept_id, dept_code, dept_name, location, manager, budget, create_time, update_time
+    </sql>
+
+    <select id="selectById" resultMap="deptMap">
+        SELECT <include refid="deptColumns"/>
+        FROM sys_dept
+        WHERE dept_id = #{deptId}
+    </select>
+
+    <select id="selectAll" resultMap="deptMap">
+        SELECT <include refid="deptColumns"/>
+        FROM sys_dept
+        ORDER BY dept_id
+    </select>
+
+    <select id="selectByCode" resultMap="deptMap">
+        SELECT <include refid="deptColumns"/>
+        FROM sys_dept
+        WHERE dept_code = #{deptCode}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM sys_dept
+    </select>
+</mapper>

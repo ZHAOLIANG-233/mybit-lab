@@ -1,0 +1,408 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC
+    "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--
+  namespace 必须与接口全限定名完全一致；
+  文件必须位于 resources/com/lab/mybatis/mapper/（与接口同包路径），
+  否则 <package> 扫描会注册接口却找不到语句，运行期报 Invalid bound statement。
+-->
+<mapper namespace="com.lab.mybatis.mapper.EmpMapper">
+
+    <!--
+      显式结果映射：每个字段都写明"列名 -> 属性名"。
+      刻意不依赖全局的 mapUnderscoreToCamelCase 开关：
+      开关一旦被误关，下划线字段会静默为 null，而显式映射会立刻暴露问题。
+    -->
+    <resultMap id="empMap" type="Emp">
+        <id     property="empId"      column="emp_id"/>
+        <result property="empNo"      column="emp_no"/>
+        <result property="empName"    column="emp_name"/>
+        <result property="gender"     column="gender"/>
+        <result property="birthDate"  column="birth_date"/>
+        <result property="email"      column="email"/>
+        <result property="phone"      column="phone"/>
+        <result property="deptId"     column="dept_id"/>
+        <result property="dept"       column="dept"/>
+        <result property="post"       column="post"/>
+        <result property="salary"     column="salary"/>
+        <result property="hireDate"   column="hire_date"/>
+        <result property="status"     column="status"/>
+        <result property="delFlag"    column="del_flag"/>
+        <result property="version"    column="version"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- 列清单只写一次，所有查询通过 <include> 复用，避免列名抄错 -->
+    <sql id="allColumns">
+        emp_id, emp_no, emp_name, gender, birth_date, email, phone,
+        dept_id, dept, post, salary, hire_date,
+        status, del_flag, version, create_time, update_time
+    </sql>
+
+    <!--
+      ============ 动态条件片段 ============
+      conditionItems      —— 只写条件本身，每条以 AND 开头，供下面两种"容器"复用
+      conditionWhere      —— <where> 容器：自动去掉开头多余的 AND / OR
+      conditionWhereTrim  —— <trim>  容器：prefix="WHERE" + prefixOverrides="AND |OR "
+      两者语义等价；DynamicSqlTest 用同一组条件断言"行数完全一致"，
+      把"等价"从口头描述变成可执行结论。
+    -->
+    <sql id="conditionItems">
+        <if test="q.onlyAlive == null or q.onlyAlive == true">
+            AND del_flag = 0
+        </if>
+        <if test="q.empName != null and q.empName != ''">
+            AND emp_name LIKE CONCAT('%', #{q.empName}, '%')
+        </if>
+        <if test="q.deptId != null">
+            AND dept_id = #{q.deptId}
+        </if>
+        <if test="q.post != null and q.post != ''">
+            AND post LIKE CONCAT('%', #{q.post}, '%')
+        </if>
+        <if test="q.status != null">
+            AND status = #{q.status}
+        </if>
+        <if test="q.minSalary != null">
+            AND salary &gt;= #{q.minSalary}
+        </if>
+        <if test="q.maxSalary != null">
+            AND salary &lt;= #{q.maxSalary}
+        </if>
+        <if test="q.hireDateFrom != null">
+            AND hire_date &gt;= #{q.hireDateFrom}
+        </if>
+        <if test="q.hireDateTo != null">
+            AND hire_date &lt;= #{q.hireDateTo}
+        </if>
+    </sql>
+
+    <sql id="conditionWhere">
+        <where>
+            <include refid="conditionItems"/>
+        </where>
+    </sql>
+
+    <sql id="conditionWhereTrim">
+        <trim prefix="WHERE" prefixOverrides="AND |OR ">
+            <include refid="conditionItems"/>
+        </trim>
+    </sql>
+
+    <!--
+      排序列名是"标识符"，无法用 #{} 预编译绑定，只能用 ${}；
+      因此取值必须来自白名单：EmpQuery#getSafeOrderBy() 会把任何非法输入回落为 emp_id。
+      方向用 <choose> 输出 ASC/DESC，同样不接受原始字符串。
+    -->
+    <sql id="orderByClause">
+        ORDER BY ${q.safeOrderBy}
+        <choose>
+            <when test="q.ascending">ASC</when>
+            <otherwise>DESC</otherwise>
+        </choose>
+    </sql>
+
+    <!-- ============ 基础 CRUD ============ -->
+
+    <select id="selectById" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        WHERE emp_id = #{empId}
+    </select>
+
+    <select id="selectAll" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        ORDER BY emp_id
+    </select>
+
+    <!--
+      useGeneratedKeys + keyProperty：插入后把自增主键回填到实体的 empId。
+      缺这两个属性时"插入返回 1 行但实体主键为 null"，
+      后续"插入后立刻按它查询/清理"的代码就会全部失效。
+    -->
+    <insert id="insert" parameterType="Emp" useGeneratedKeys="true" keyProperty="empId">
+        INSERT INTO emp
+            (emp_no, emp_name, gender, birth_date, email, phone,
+             dept_id, dept, post, salary, hire_date, status, del_flag, version)
+        VALUES
+            (#{empNo}, #{empName}, #{gender}, #{birthDate}, #{email}, #{phone},
+             #{deptId}, #{dept}, #{post}, #{salary}, #{hireDate}, #{status}, 0, 0)
+    </insert>
+
+    <delete id="deleteById">
+        DELETE FROM emp WHERE emp_id = #{empId}
+    </delete>
+
+    <update id="update" parameterType="Emp">
+        UPDATE emp
+        SET emp_no      = #{empNo},
+            emp_name    = #{empName},
+            gender      = #{gender},
+            birth_date  = #{birthDate},
+            email       = #{email},
+            phone       = #{phone},
+            dept_id     = #{deptId},
+            dept        = #{dept},
+            post        = #{post},
+            salary      = #{salary},
+            hire_date   = #{hireDate},
+            status      = #{status},
+            del_flag    = #{delFlag},
+            version     = version + 1
+        WHERE emp_id = #{empId}
+    </update>
+
+    <!--
+      <set> 会自动去掉最后一个多余的逗号：否则"只更新一个字段"时
+      SQL 会变成 SET emp_name = ?, 直接语法错误。
+      这里同时把 version 自增，模拟"手工实现乐观锁"。
+    -->
+    <update id="updateDynamic">
+        UPDATE emp
+        <set>
+            <if test="emp.empNo != null and emp.empNo != ''">emp_no = #{emp.empNo},</if>
+            <if test="emp.empName != null and emp.empName != ''">emp_name = #{emp.empName},</if>
+            <if test="emp.gender != null and emp.gender != ''">gender = #{emp.gender},</if>
+            <if test="emp.birthDate != null">birth_date = #{emp.birthDate},</if>
+            <if test="emp.email != null and emp.email != ''">email = #{emp.email},</if>
+            <if test="emp.phone != null and emp.phone != ''">phone = #{emp.phone},</if>
+            <if test="emp.deptId != null">dept_id = #{emp.deptId},</if>
+            <if test="emp.dept != null and emp.dept != ''">dept = #{emp.dept},</if>
+            <if test="emp.post != null and emp.post != ''">post = #{emp.post},</if>
+            <if test="emp.salary != null">salary = #{emp.salary},</if>
+            <if test="emp.hireDate != null">hire_date = #{emp.hireDate},</if>
+            <if test="emp.status != null">status = #{emp.status},</if>
+            version = version + 1
+        </set>
+        WHERE emp_id = #{emp.empId}
+    </update>
+
+    <!-- ============ 多条件查询 / 分页 ============ -->
+
+    <select id="selectByCondition" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        <include refid="conditionWhere"/>
+        <include refid="orderByClause"/>
+    </select>
+
+    <!--
+      计数与列表共用 conditionWhere：口径天然一致。
+      若把条件抄成两份，很容易出现"列表 12 条、总数 15 条"的静默不一致。
+    -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM emp
+        <include refid="conditionWhere"/>
+    </select>
+
+    <select id="selectPage" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        <include refid="conditionWhere"/>
+        <include refid="orderByClause"/>
+        LIMIT #{page.offset}, #{page.safePageSize}
+    </select>
+
+    <select id="selectByConditionWithTrim" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        <include refid="conditionWhereTrim"/>
+        <include refid="orderByClause"/>
+    </select>
+
+    <!--
+      三级分支：姓名精确命中 → 该员工；否则部门命中 → 该部门在职员工；
+      都未命中 → 兜底返回全部在职员工（最多 5 条）。
+    -->
+    <select id="selectByPriority" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        WHERE del_flag = 0
+        <choose>
+            <when test="empName != null and empName != ''">
+                AND emp_name = #{empName}
+            </when>
+            <when test="deptId != null">
+                AND dept_id = #{deptId}
+            </when>
+            <otherwise>
+                AND status = 1
+            </otherwise>
+        </choose>
+        ORDER BY emp_id
+        LIMIT 5
+    </select>
+
+    <!--
+      批量插入：单条多行 VALUES 语句。
+      rewriteBatchedStatements=true 与多行 VALUES 配合，是批量的性能前提；
+      useGeneratedKeys 会把 16 个主键逐个回填到 list 元素上。
+    -->
+    <insert id="insertBatch" useGeneratedKeys="true" keyProperty="empId">
+        INSERT INTO emp
+            (emp_no, emp_name, gender, dept_id, dept, post, salary, hire_date, status, del_flag, version)
+        VALUES
+        <foreach collection="list" item="e" separator=",">
+            (#{e.empNo}, #{e.empName}, #{e.gender}, #{e.deptId}, #{e.dept},
+             #{e.post}, #{e.salary}, #{e.hireDate}, #{e.status}, 0, 0)
+        </foreach>
+    </insert>
+
+    <delete id="deleteBatch">
+        DELETE FROM emp
+        WHERE emp_id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <!-- BETWEEN 是闭区间，边界值会被包含，测试中专门验证 min/max 自身命中 -->
+    <select id="selectBySalaryRange" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        WHERE del_flag = 0
+          AND salary BETWEEN #{min} AND #{max}
+        ORDER BY salary
+    </select>
+
+    <!-- ============ 统计与关联（N+1 对照） ============ -->
+
+    <!--
+      聚合写法：一条 SQL 完成"部门 + 在职人数 + 薪资聚合"。
+      用 LEFT JOIN：财务部若没有在职员工也需出现在结果里（计数为 0）。
+    -->
+    <select id="selectDeptStatByJoin" resultType="DeptStatVO">
+        SELECT d.dept_id            AS deptId,
+               d.dept_name          AS deptName,
+               COUNT(e.emp_id)      AS empCount,
+               IFNULL(SUM(e.salary), 0) AS totalSalary,
+               IFNULL(MAX(e.salary), 0) AS maxSalary,
+               IFNULL(MIN(e.salary), 0) AS minSalary
+        FROM sys_dept d
+                 LEFT JOIN emp e
+                           ON e.dept_id = d.dept_id
+                               AND e.status = 1
+                               AND e.del_flag = 0
+        GROUP BY d.dept_id, d.dept_name
+        ORDER BY d.dept_id
+    </select>
+
+    <!-- N+1 写法用到的"单个部门聚合"：会被调用 N 次 -->
+    <select id="selectDeptStatByDeptId" resultType="DeptStatVO">
+        SELECT d.dept_id            AS deptId,
+               d.dept_name          AS deptName,
+               COUNT(e.emp_id)      AS empCount,
+               IFNULL(SUM(e.salary), 0) AS totalSalary,
+               IFNULL(MAX(e.salary), 0) AS maxSalary,
+               IFNULL(MIN(e.salary), 0) AS minSalary
+        FROM sys_dept d
+                 LEFT JOIN emp e
+                           ON e.dept_id = d.dept_id
+                               AND e.status = 1
+                               AND e.del_flag = 0
+        WHERE d.dept_id = #{deptId}
+        GROUP BY d.dept_id, d.dept_name
+    </select>
+
+    <select id="selectEmpsByDeptId" resultMap="empMap">
+        SELECT <include refid="allColumns"/>
+        FROM emp
+        WHERE dept_id = #{deptId}
+          AND status = 1
+          AND del_flag = 0
+        ORDER BY emp_id
+    </select>
+
+    <!--
+      N+1 现场：<collection> 上使用 select="selectEmpsByDeptId"（嵌套子查询）。
+      结果正确，但会发出 1（部门）+ N（每部门一次）条 SQL。
+      N+1 场景下实测 1 + 6 = 7 条。
+    -->
+    <resultMap id="deptWithEmpsNPlusOne" type="SysDept">
+        <id     property="deptId"    column="dept_id"/>
+        <result property="deptCode"  column="dept_code"/>
+        <result property="deptName"  column="dept_name"/>
+        <result property="location"  column="location"/>
+        <result property="manager"   column="manager"/>
+        <result property="budget"    column="budget"/>
+        <collection property="emps" ofType="Emp"
+                    select="selectEmpsByDeptId" column="dept_id"/>
+    </resultMap>
+
+    <select id="selectDeptWithEmpsNPlusOne" resultMap="deptWithEmpsNPlusOne">
+        SELECT dept_id, dept_code, dept_name, location, manager, budget
+        FROM sys_dept
+        ORDER BY dept_id
+    </select>
+
+    <!--
+      优化写法：一条 LEFT JOIN 取回全部数据，再用 columnPrefix="e_" 把
+      e_emp_id / e_emp_name 等列映射进 emps 集合，在内存中完成聚合。
+      数据与 N+1 写法完全一致，SQL 条数从 7 降到 1。
+    -->
+    <resultMap id="empInDept" type="Emp">
+        <id     property="empId"     column="emp_id"/>
+        <result property="empNo"     column="emp_no"/>
+        <result property="empName"   column="emp_name"/>
+        <result property="gender"    column="gender"/>
+        <result property="deptId"    column="dept_id"/>
+        <result property="dept"      column="dept"/>
+        <result property="post"      column="post"/>
+        <result property="salary"    column="salary"/>
+        <result property="hireDate"  column="hire_date"/>
+        <result property="status"    column="status"/>
+        <result property="delFlag"   column="del_flag"/>
+    </resultMap>
+
+    <resultMap id="deptWithEmpsJoin" type="SysDept">
+        <id     property="deptId"   column="dept_id"/>
+        <result property="deptCode" column="dept_code"/>
+        <result property="deptName" column="dept_name"/>
+        <result property="location" column="location"/>
+        <result property="manager"  column="manager"/>
+        <result property="budget"   column="budget"/>
+        <collection property="emps" ofType="Emp" resultMap="empInDept" columnPrefix="e_"/>
+    </resultMap>
+
+    <select id="selectDeptWithEmpsJoin" resultMap="deptWithEmpsJoin">
+        SELECT d.dept_id,
+               d.dept_code,
+               d.dept_name,
+               d.location,
+               d.manager,
+               d.budget,
+               e.emp_id     AS e_emp_id,
+               e.emp_no     AS e_emp_no,
+               e.emp_name   AS e_emp_name,
+               e.gender     AS e_gender,
+               e.dept_id    AS e_dept_id,
+               e.dept       AS e_dept,
+               e.post       AS e_post,
+               e.salary     AS e_salary,
+               e.hire_date  AS e_hire_date,
+               e.status     AS e_status,
+               e.del_flag   AS e_del_flag
+        FROM sys_dept d
+                 LEFT JOIN emp e
+                           ON e.dept_id = d.dept_id
+                               AND e.status = 1
+                               AND e.del_flag = 0
+        ORDER BY d.dept_id, e.emp_id
+    </select>
+
+    <select id="countGroupByPost" resultType="map">
+        SELECT post AS post, COUNT(*) AS cnt
+        FROM emp
+        WHERE del_flag = 0
+        GROUP BY post
+        ORDER BY cnt DESC, post ASC
+    </select>
+
+    <select id="selectMaxId" resultType="java.lang.Integer">
+        SELECT MAX(emp_id) FROM emp
+    </select>
+</mapper>

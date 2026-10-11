@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC
+    "-//mybatis.org//DTD Config 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<!--
+  纯 Java + MyBatis 全局配置（无 Spring、无任何 starter）。
+  凭据不写死：${db.*} 由 com.lab.common.config.DbConfig 解析后，在
+  SqlSessionFactoryBuilder.build(in, properties) 时注入。
+  优先级：-D 系统属性 > 环境变量 > classpath:db.properties（已 gitignore）> 非敏感默认值。
+-->
+<configuration>
+
+    <properties>
+        <property name="driver"   value="${db.driver}"/>
+        <property name="url"      value="${db.url}"/>
+        <property name="username" value="${db.username}"/>
+        <property name="password" value="${db.password}"/>
+    </properties>
+
+    <settings>
+        <!-- 开启驼峰映射：emp_name -> empName；关闭会让下划线字段静默为 null -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 日志实现指向 Log4j；classpath 缺少 log4j 时会抛 LogException -->
+        <setting name="logImpl" value="LOG4J"/>
+        <!-- 把结果为 null 的字段也写进日志，便于排查结果映射问题 -->
+        <setting name="callSettersOnNulls" value="true"/>
+        <!-- 语句级超时（秒）：配合排查看"到底是慢还是被锁住" -->
+        <setting name="defaultStatementTimeout" value="10"/>
+    </settings>
+
+    <typeAliases>
+        <!-- 实体与 DTO 注册别名，映射文件里可直接写 Emp / SysDept / DeptStatVO -->
+        <package name="com.lab.common.entity"/>
+        <package name="com.lab.common.dto"/>
+    </typeAliases>
+
+    <plugins>
+        <!--
+          慢 SQL 告警插件。
+          阈值优先级：-DslowSql.thresholdMs > 环境变量 SLOW_SQL_THRESHOLD_MS > 本节点 property > 默认 200。
+          运行示例：-DslowSql.thresholdMs=0 让每条 SQL 都触发告警，便于观察拦截是否生效。
+        -->
+        <plugin interceptor="com.lab.mybatis.plugin.SlowSqlInterceptor">
+            <property name="thresholdMs" value="200"/>
+        </plugin>
+    </plugins>
+
+    <environments default="development">
+        <environment id="development">
+            <!-- transactionManager 用 JDBC：事务由 SqlSession 的 commit/rollback 控制 -->
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver"   value="${driver}"/>
+                <property name="url"      value="${url}"/>
+                <property name="username" value="${username}"/>
+                <property name="password" value="${password}"/>
+            </dataSource>
+        </environment>
+    </environments>
+
+    <mappers>
+        <!--
+          注意（实测过的坑）：<package> 扫描时 MyBatis 只按
+          「接口全限定名.replace('.', '/') + ".xml"」查找映射文件，
+          所以 XML 必须放在 resources/com/lab/mybatis/mapper/ 下（镜像包路径）。
+          放到 resources/mapper/ 会注册接口却找不到语句，
+          运行期报 BindingException: Invalid bound statement。
+        -->
+        <package name="com.lab.mybatis.mapper"/>
+    </mappers>
+</configuration>
