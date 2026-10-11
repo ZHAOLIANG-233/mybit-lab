@@ -1,0 +1,64 @@
+# =====================================================================
+# .gitignore
+# 原则：凭据/口令/私钥一律不入库；构建产物、IDE 配置、日志、运行目录不入库。
+# 注意不要用 *.properties 这种通配，会把 log4j.properties 这类必须入库的文件误伤。
+# =====================================================================
+
+# ---------- 敏感凭据（最高优先级，严禁提交） ----------
+db.properties
+**/db.properties
+jdbc.properties
+**/jdbc.properties
+.env
+.env.*
+secrets.properties
+*.pem
+*.key
+*.p12
+*.jks
+*.keystore
+id_rsa*
+*.credentials
+# 说明：db.properties.example 是模板，名字不同，不会被上面命中，正常入库。
+
+# ---------- 构建产物 ----------
+target/
+*.class
+*.war
+*.ear
+*.jar.original
+
+# ---------- IDE / 编辑器 ----------
+.idea/*
+!.idea/runConfigurations/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# ---------- 日志 ----------
+logs/
+*.log
+
+# ---------- 报告产物（由脚本生成，不纳入版本控制） ----------
+_report/
+
+# ---------- 运行期目录（数据库数据 / PID / 错误日志） ----------
+_runtime/
+
+# ---------- 临时文件 ----------
+_tmp/
+*.tmp
+*.bak
+*.orig
+*.rej
+~*
+
+# ---------- 操作系统 ----------
+.DS_Store
+Thumbs.db
+desktop.ini

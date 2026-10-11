@@ -1,0 +1,14 @@
+# 源码统一 LF；二进制文件明确声明，避免 GitHub 把 PDF/PNG 当文本 diff
+* text=auto eol=lf
+*.java text eol=lf
+*.xml text eol=lf
+*.sql text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.properties text eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary
+*.docx binary
+*.jar binary
+*.java linguist-language=Java
