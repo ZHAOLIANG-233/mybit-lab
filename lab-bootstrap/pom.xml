@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.lab</groupId>
+    <artifactId>mybit-lab</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>lab-bootstrap</artifactId>
+  <name>lab-bootstrap</name>
+  <description>汇合点：可运行入口 + 同时持有两条技术路线的集成测试</description>
+
+  <dependencies>
+    <!-- 唯一允许"两条轨同时出现"的模块，一致性测试就放在这里 -->
+    <dependency>
+      <groupId>com.lab</groupId>
+      <artifactId>lab-mybatis</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.lab</groupId>
+      <artifactId>lab-mybatis-plus</artifactId>
+    </dependency>
+
+    <!--
+      刻意不在这里显式声明 mybatis 版本：一旦声明就会覆盖父 pom 的仲裁，
+      导致运行期加载 MyBatis-Plus 自带的 3.5.15，与预期 3.5.16 不一致。
+      对应的守护断言见 DependencyMatrixTest。
+    -->
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- 可运行入口：mvn exec:java 或 IDEA 里直接 Run LabApplication -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <configuration>
+          <mainClass>com.lab.LabApplication</mainClass>
+          <systemProperties>
+            <systemProperty>
+              <key>file.encoding</key>
+              <value>UTF-8</value>
+            </systemProperty>
+          </systemProperties>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

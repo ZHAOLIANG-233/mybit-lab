@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.lab</groupId>
+    <artifactId>mybit-lab</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>lab-mybatis</artifactId>
+  <name>lab-mybatis</name>
+  <description>原生 MyBatis 轨：XML + 注解 Mapper、会话模板、自研分页、慢 SQL 插件</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>com.lab</groupId>
+      <artifactId>lab-common</artifactId>
+    </dependency>
+
+    <!-- 原生 MyBatis：版本由父 pom 仲裁，此处刻意不写 version -->
+    <dependency>
+      <groupId>org.mybatis</groupId>
+      <artifactId>mybatis</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+    </dependency>
+
+    <!-- logImpl=LOG4J 对应的日志实现；缺失会抛 LogException -->
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+    </dependency>
+  </dependencies>
+</project>

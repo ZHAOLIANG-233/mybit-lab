@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.lab</groupId>
+  <artifactId>mybit-lab</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+
+  <name>mybit-lab</name>
+  <description>实验一：纯 Java + MyBatis / MyBatis-Plus 环境搭建与 CRUD 实操（多模块聚合，禁用 Spring）</description>
+
+  <!--
+    模块划分与职责（父工程只做聚合与版本仲裁）：
+        lab-common       -> 实体 / DTO / 工具 / 异常
+        lab-mybatis      -> 原生 MyBatis 轨（XML + 注解 Mapper、会话模板、慢 SQL 插件）
+        lab-mybatis-plus -> MyBatis-Plus 轨（BaseMapper / 条件构造器 / 分页插件 / 逻辑删除）
+        lab-bootstrap    -> 两条轨的汇合点（可运行入口 + 15 个测试类）
+  -->
+  <modules>
+    <module>lab-common</module>
+    <module>lab-mybatis</module>
+    <module>lab-mybatis-plus</module>
+    <module>lab-bootstrap</module>
+  </modules>
+
+  <!-- ================= 版本中枢：子模块一律不写 version ================= -->
+  <properties>
+    <java.version>1.8</java.version>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <mybatis.version>3.5.16</mybatis.version>
+    <mybatis-plus.version>3.5.5</mybatis-plus.version>
+    <mysql.version>9.0.0</mysql.version>
+    <junit.version>4.13.2</junit.version>
+    <log4j.version>1.2.17</log4j.version>
+    <lombok.version>1.18.48</lombok.version>
+
+    <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+    <exec-maven-plugin.version>3.5.0</exec-maven-plugin.version>
+  </properties>
+
+  <!-- ================= 依赖版本仲裁 ================= -->
+  <dependencyManagement>
+    <dependencies>
+      <!-- 本工程的四个模块 -->
+      <dependency>
+        <groupId>com.lab</groupId>
+        <artifactId>lab-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.lab</groupId>
+        <artifactId>lab-mybatis</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.lab</groupId>
+        <artifactId>lab-mybatis-plus</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <!-- 原生 MyBatis 核心 -->
+      <dependency>
+        <groupId>org.mybatis</groupId>
+        <artifactId>mybatis</artifactId>
+        <version>${mybatis.version}</version>
+      </dependency>
+
+      <!--
+        MyBatis-Plus 聚合包：自带 mybatis 3.5.15 与 jsqlparser 4.6。
+        mybatis-spring / spring-* 均为 optional，不会传递引入 Spring，满足"禁用 Spring"。
+        共存时由父 pom 把 mybatis 统一仲裁为 ${mybatis.version}。
+      -->
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus</artifactId>
+        <version>${mybatis-plus.version}</version>
+      </dependency>
+
+      <!-- 仅注解包（约十几 KB，无框架代码），供 lab-common 的实体使用 -->
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-annotation</artifactId>
+        <version>${mybatis-plus.version}</version>
+      </dependency>
+
+      <!-- MySQL 驱动：新坐标 com.mysql:mysql-connector-j -->
+      <dependency>
+        <groupId>com.mysql</groupId>
+        <artifactId>mysql-connector-j</artifactId>
+        <version>${mysql.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>${junit.version}</version>
+        <scope>test</scope>
+      </dependency>
+
+      <dependency>
+        <groupId>log4j</groupId>
+        <artifactId>log4j</artifactId>
+        <version>${log4j.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <version>${lombok.version}</version>
+        <scope>provided</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <!-- ================= 全模块公共依赖（JUnit + Lombok） ================= -->
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+    </dependency>
+  </dependencies>
+
+  <!-- ================= 构建配置 ================= -->
+  <build>
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>exec-maven-plugin</artifactId>
+          <version>${exec-maven-plugin.version}</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>${maven-compiler-plugin.version}</version>
+        <configuration>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+          <encoding>${project.build.sourceEncoding}</encoding>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
+          <argLine>-Dfile.encoding=UTF-8</argLine>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

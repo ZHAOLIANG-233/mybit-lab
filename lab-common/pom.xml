@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.lab</groupId>
+    <artifactId>mybit-lab</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>lab-common</artifactId>
+  <name>lab-common</name>
+  <description>实体 / DTO / 工具 / 异常：两条技术路线共用的基础模块</description>
+
+  <dependencies>
+    <!-- 只引注解包：实体上的 @TableName/@TableId/@TableLogic 由此提供，
+         让纯 MyBatis 轨不会因为共用实体而被迫引入 MyBatis-Plus 核心 -->
+    <dependency>
+      <groupId>com.baomidou</groupId>
+      <artifactId>mybatis-plus-annotation</artifactId>
+    </dependency>
+  </dependencies>
+</project>
